@@ -91,6 +91,23 @@ static void register_span_data_ce() {
     zend_declare_property_null(ddtrace_ce_span_data, "metrics", sizeof("metrics") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 }
 
+void (*_prev_error_cb)(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args);
+void _ddtrace_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format,
+                       va_list args) {
+    ddtrace_span_ids_t *stack = DDTRACE_G(span_ids_top);
+
+    // We only care about errors, not warnings, notices, etc
+    int errors_of_interest = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR;
+    // todo: do we care about E_USER_ERROR and E_RECOVERABLE_ERROR?
+    if (stack && (type & errors_of_interest)) {
+        DD_PRINTF("Error handler triggered with active span!\n");
+    }
+
+    if (_prev_error_cb) {
+        _prev_error_cb(type, error_filename, error_lineno, format, args);
+    }
+}
+
 static PHP_MINIT_FUNCTION(ddtrace) {
     UNUSED(type);
     REGISTER_STRING_CONSTANT("DD_TRACE_VERSION", PHP_DDTRACE_VERSION, CONST_CS | CONST_PERSISTENT);
@@ -100,6 +117,9 @@ static PHP_MINIT_FUNCTION(ddtrace) {
     if (DDTRACE_G(disable)) {
         return SUCCESS;
     }
+
+    _prev_error_cb = zend_error_cb;
+    zend_error_cb = _ddtrace_error_cb;
 
     register_span_data_ce();
     // config initialization needs to be at the top
@@ -123,6 +143,8 @@ static PHP_MSHUTDOWN_FUNCTION(ddtrace) {
     if (DDTRACE_G(disable)) {
         return SUCCESS;
     }
+
+    zend_error_cb = _prev_error_cb;
 
     // when extension is properly unloaded disable the at_exit hook
     ddtrace_coms_disable_atexit_hook();
