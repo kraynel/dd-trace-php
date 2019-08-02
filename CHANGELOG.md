@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file - [read more
 
 ### Changed
 - Remove `zend_execute_ex` override and trace `ZEND_DO_UCALL` #519
+- Default `request_init_hook path` is computed based on extension directory location #520
 
 ## [0.29.0]
 

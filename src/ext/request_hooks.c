@@ -105,7 +105,7 @@ char *ddtrace_fetch_computed_request_init_hook_path() {
     } else if (strstr(path, "tmp/build_extension/modules") != NULL) {
         _resolve_path(path, path_len, "/../../../bridge/dd_wrap_autoloader.php", resolved_path);
     } else {
-        _resolve_path(path, path_len, "/../bridge/dd_wrap_autoloader.php", resolved_path);
+        _resolve_path(path, path_len, "/../dd-trace-sources/bridge/dd_wrap_autoloader.php", resolved_path);
     }
 
     if (access(resolved_path, F_OK) != -1) {

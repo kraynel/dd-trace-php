@@ -71,21 +71,21 @@
     obj:*
 }
 {
-   <insert_a_suppression_name_here>
-   Memcheck:Cond
-   fun:strlcpy
-   obj:*
-   obj:*
-   obj:*
-   obj:*
-   obj:*
+    <insert_a_suppression_name_here>
+    Memcheck:Cond
+    fun:strlcpy
+    obj:*
+    obj:*
+    obj:*
+    obj:*
+    obj:*
 }
 {
-   <insert_a_suppression_name_here>
-   Memcheck:Cond
-   fun:strlcpy
-   obj:*
-   obj:*
-   obj:*
-   obj:*
+    <insert_a_suppression_name_here>
+    Memcheck:Cond
+    fun:strlcpy
+    obj:*
+    obj:*
+    obj:*
+    obj:*
 }
