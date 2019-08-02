@@ -56,6 +56,54 @@ ZEND_END_ARG_INFO()
 
 static void php_ddtrace_init_globals(zend_ddtrace_globals *ng) { memset(ng, 0, sizeof(zend_ddtrace_globals)); }
 
+static inline BOOL_T starts_with(const char *with, const char* str, size_t str_len) {
+    size_t with_len = strlen(with);
+    if (str_len < with_len) {
+        return FALSE;
+    } else {
+        return memcmp(with, str, with_len) == 0;
+    }
+}
+
+static inline void resolve_path(const char *path, size_t path_len, const char *token, char *resolved_path){
+        size_t length = path_len + strlen(token) + 1;
+        char *tmp_path = calloc(length, 1);
+        int last_slash = strrchr(path, '/') - path;
+
+        snprintf(tmp_path, length, "%.*s%s", last_slash, path, token);
+        realpath(tmp_path, resolved_path);
+        free(tmp_path);
+}
+
+static inline char *ddtrace_fetch_computed_request_init_hook_path(){
+    Dl_info dl_info;
+    if (dladdr(ddtrace_fetch_computed_request_init_hook_path, &dl_info) == -1){
+        return NULL;
+    }
+    char *path = (char *)dl_info.dli_fname;
+
+    if (access( path, F_OK ) == -1) {
+        return NULL;
+    }
+    size_t path_len = strlen(path);
+    char *resolved_path = calloc(PATH_MAX+1, 1);
+
+    if (starts_with("/opt/datadog-php/extensions/", path, path_len)){
+        strcpy(resolved_path, "/opt/datadog-php/dd-trace-sources/bridge/dd_wrap_autoloader.php");
+    } else if (strstr(path, "tmp/build_extension/modules") != NULL) {
+        resolve_path(path, path_len, "/../../../bridge/dd_wrap_autoloader.php", resolved_path);
+    } else {
+        resolve_path(path, path_len, "/../bridge/dd_wrap_autoloader.php", resolved_path);
+    }
+
+    if (access(resolved_path, F_OK) != -1) {
+        return resolved_path;
+    } else {
+        free(resolved_path);
+        return NULL;
+    }
+}
+
 static PHP_MINIT_FUNCTION(ddtrace) {
     UNUSED(type);
     REGISTER_STRING_CONSTANT("DD_TRACE_VERSION", PHP_DDTRACE_VERSION, CONST_CS | CONST_PERSISTENT);
@@ -118,9 +166,17 @@ static PHP_RINIT_FUNCTION(ddtrace) {
     dd_trace_seed_prng(TSRMLS_C);
     ddtrace_coms_on_pid_change();
 
-    if (DDTRACE_G(request_init_hook)) {
-        DD_PRINTF("%s", DDTRACE_G(request_init_hook));
+
+    if (DDTRACE_G(request_init_hook) && access(DDTRACE_G(request_init_hook), F_OK) == 0) {
+        DD_PRINTF("Loading request init hook: %s", DDTRACE_G(request_init_hook));
         dd_execute_php_file(DDTRACE_G(request_init_hook) TSRMLS_CC);
+    } else {
+        char *path = ddtrace_fetch_computed_request_init_hook_path();
+        if (path) {
+            DD_PRINTF("Loading request_init_hook: %s", path);
+            dd_execute_php_file(path TSRMLS_CC);
+            free(path);
+        }
     }
 
     DDTRACE_G(traces_group_id) = ddtrace_coms_next_group_id();
