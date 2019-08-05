@@ -91,16 +91,26 @@ static void register_span_data_ce() {
     zend_declare_property_null(ddtrace_ce_span_data, "metrics", sizeof("metrics") - 1, ZEND_ACC_PUBLIC TSRMLS_CC);
 }
 
+// buffer needs to be at least 20 chars long: E_RECOVERABLE_ERROR + null
+// returns how many characters were written (does not write null)
+static size_t _error_code_to_string(int type, char *buffer);
+
+// todo: move to module globals? It's only changed during minit/mshutdown.
 void (*_prev_error_cb)(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args);
+
 void _ddtrace_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format,
                        va_list args) {
     ddtrace_span_ids_t *stack = DDTRACE_G(span_ids_top);
 
     // We only care about errors, not warnings, notices, etc
-    int errors_of_interest = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR;
     // todo: do we care about E_USER_ERROR and E_RECOVERABLE_ERROR?
+    int errors_of_interest = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR;
+
     if (stack && (type & errors_of_interest)) {
-        DD_PRINTF("Error handler triggered with active span!\n");
+        char error_name[20];
+        size_t error_name_len = _error_code_to_string(type, error_name);
+        error_name[error_name_len] = '\0';
+        DD_PRINTF("Error handler triggered with active span, error code: %s\n", error_name);
     }
 
     if (_prev_error_cb) {
@@ -628,6 +638,82 @@ zend_module_entry ddtrace_module_entry = {STANDARD_MODULE_HEADER,    PHP_DDTRACE
                                           PHP_MINIT(ddtrace),        PHP_MSHUTDOWN(ddtrace), PHP_RINIT(ddtrace),
                                           PHP_RSHUTDOWN(ddtrace),    PHP_MINFO(ddtrace),     PHP_DDTRACE_VERSION,
                                           STANDARD_MODULE_PROPERTIES};
+
+// buffer needs to be at least 20 chars long: E_RECOVERABLE_ERROR + null
+// returns how many characters were written (does not write null)
+static size_t _error_code_to_string(int type, char *buffer) {
+    const char *name;
+    size_t name_len;
+    switch (type) {
+        case E_ERROR:
+            name = "E_ERROR";
+            break;
+
+        case E_WARNING:
+            name = "E_WARNING";
+            break;
+
+        case E_PARSE:
+            name = "E_PARSE";
+            break;
+
+        case E_NOTICE:
+            name = "E_NOTICE";
+            break;
+
+        case E_CORE_ERROR:
+            name = "E_CORE_ERROR";
+            break;
+
+        case E_CORE_WARNING:
+            name = "E_CORE_WARNING";
+            break;
+
+        case E_COMPILE_ERROR:
+            name = "E_COMPILE_ERROR";
+            break;
+
+        case E_COMPILE_WARNING:
+            name = "E_COMPILE_WARNING";
+            break;
+
+        case E_USER_ERROR:
+            name = "E_USER_ERROR";
+            break;
+
+        case E_USER_WARNING:
+            name = "E_USER_WARNING";
+            break;
+
+        case E_USER_NOTICE:
+            name = "E_USER_NOTICE";
+            break;
+
+        case E_STRICT:
+            name = "E_STRICT";
+            break;
+
+        case E_RECOVERABLE_ERROR:
+            name = "E_RECOVERABLE_ERROR";
+            break;
+
+        case E_DEPRECATED:
+            name = "E_DEPRECATED";
+            break;
+
+        case E_USER_DEPRECATED:
+            name = "E_USER_DEPRECATED";
+            break;
+
+        default:
+            name = "E_UKNOWN";
+            break;
+    }
+
+    name_len = strlen(name);
+    memcpy(buffer, name, name_len);
+    return name_len;
+}
 
 #ifdef COMPILE_DL_DDTRACE
 ZEND_GET_MODULE(ddtrace)
