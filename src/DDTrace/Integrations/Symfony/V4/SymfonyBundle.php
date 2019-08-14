@@ -42,7 +42,6 @@ class SymfonyBundle extends Bundle
         $symfonyRequestSpan = $symfonyRequestScope->getSpan();
         $symfonyRequestSpan->setTag(Tag::SERVICE_NAME, $appName);
         $symfonyRequestSpan->setTag(Tag::SPAN_TYPE, Type::WEB_SERVLET);
-        $symfonyRequestSpan->overwriteOperationName('symfony.request');
         // Overwriting the default web integration
         SymfonyIntegration::getInstance()->addTraceAnalyticsIfEnabledLegacy($symfonyRequestSpan);
         $request = null;
@@ -59,7 +58,6 @@ class SymfonyBundle extends Bundle
                 $symfonyRequestSpan = $symfonyRequestScope->getSpan();
                 $symfonyRequestSpan->setTag(Tag::HTTP_METHOD, $request->getMethod());
                 $symfonyRequestSpan->setTag(Tag::HTTP_URL, $request->getUriForPath($request->getPathInfo()));
-                $symfonyRequestSpan->overwriteOperationName(sprintf('HTTP %s %s', $request->getMethod(), $request->getPathInfo()));
 
                 $thrown = null;
                 $response = null;
@@ -75,11 +73,6 @@ class SymfonyBundle extends Bundle
                     $thrown = $e;
                 }
 
-                $route = $request->get('_route');
-
-                if ($symfonyRequestSpan !== null && $route !== null) {
-                    $symfonyRequestSpan->setTag(Tag::RESOURCE_NAME, $route);
-                }
                 $symfonyRequestScope->close();
                 $scope->close();
 

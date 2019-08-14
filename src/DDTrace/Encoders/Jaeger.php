@@ -33,13 +33,18 @@ final class Jaeger implements Encoder
                         'vStr' => $tagValue,
                     ]);
                 }
+                $tags[] = new Tag([
+                    'key' => 'name',
+                    'vType' => TagType::STRING,
+                    'vStr' => $span['name'],
+                ]);
 
                 $spans[] = new Span([
                     'traceIdLow' => $span['trace_id'],
                     'traceIdHigh' => 0,
                     'spanId' => $span['span_id'],
                     'parentSpanId' => $span['parent_id'] ?? 0,
-                    'operationName' => $span['name'],
+                    'operationName' => $span['resource'],
                     'flags' => 1,
                     'startTime' => $span['start'] / 1000,
                     'duration' => $span['duration'] / 1000,
