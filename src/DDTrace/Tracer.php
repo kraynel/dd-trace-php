@@ -1,11 +1,11 @@
 <?php
 
-namespace DDTrace;
-
 use DDTrace\Encoders\Json;
 use DDTrace\Encoders\SpanEncoder;
 use DDTrace\Http\Urls;
 use DDTrace\Encoders\MessagePack;
+use DDTrace\Encoders\Jaeger as JaegerEncoder;
+use DDTrace\Transport\Jaeger\Jaeger;
 use DDTrace\Log\LoggingTrait;
 use DDTrace\Processing\TraceAnalyticsProcessor;
 use DDTrace\Propagators\CurlHeadersMap;
@@ -98,7 +98,17 @@ final class Tracer implements TracerInterface
      */
     public function __construct(Transport $transport = null, array $propagators = null, array $config = [])
     {
-        $encoder = getenv('DD_TRACE_ENCODER') === 'json' ? new Json() : new MessagePack();
+        switch (getenv('DD_TRACE_ENCODER')) {
+            case 'json':
+                $encoder = new Json();
+                break;
+            case 'jaeger':
+                $encoder = new JaegerEncoder();
+                $transport = new Jaeger($encoder);
+                break;
+            default:
+                $encoder = new MessagePack();
+        }
         $this->transport = $transport ?: new Http($encoder);
         $textMapPropagator = new TextMap($this);
         $this->propagators = $propagators ?: [
@@ -535,5 +545,10 @@ final class Tracer implements TracerInterface
         }
 
         $this->setPrioritySamplingFromSpan($rootSpan);
+    }
+
+    public function getAppName()
+    {
+        return $this->globalConfig->appName();
     }
 }

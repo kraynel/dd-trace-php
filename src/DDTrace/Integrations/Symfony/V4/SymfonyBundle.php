@@ -59,6 +59,7 @@ class SymfonyBundle extends Bundle
                 $symfonyRequestSpan = $symfonyRequestScope->getSpan();
                 $symfonyRequestSpan->setTag(Tag::HTTP_METHOD, $request->getMethod());
                 $symfonyRequestSpan->setTag(Tag::HTTP_URL, $request->getUriForPath($request->getPathInfo()));
+                $symfonyRequestSpan->overwriteOperationName(sprintf('HTTP %s %s', $request->getMethod(), $request->getPathInfo()));
 
                 $thrown = null;
                 $response = null;
