@@ -141,6 +141,13 @@ class SymfonyBundle extends Bundle
                 } else {
                     $eventName = is_object($args[0]) ? get_class($args[0]) : $args[0];
                 }
+
+                if ($eventName == 'kernel.terminate') {
+                    // kernel.terminate event is creating another root span
+                    // TODO: Fix This
+                    return include __DIR__ . '/../../../try_catch_finally.php';
+                }
+
                 $scope = GlobalTracer::get()->startIntegrationScopeAndSpan(
                     SymfonyIntegration::getInstance(),
                     'symfony.' . $eventName
