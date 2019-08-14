@@ -2,25 +2,27 @@
 
 namespace DDTrace;
 
-use DDTrace\Encoders\Json;
-use DDTrace\Encoders\SpanEncoder;
 use DDTrace\Http\Urls;
-use DDTrace\Integrations\Integration;
-use DDTrace\Encoders\MessagePack;
-use DDTrace\Log\LoggingTrait;
-use DDTrace\Processing\TraceAnalyticsProcessor;
-use DDTrace\Propagators\CurlHeadersMap;
-use DDTrace\Propagators\Noop as NoopPropagator;
-use DDTrace\Propagators\TextMap;
-use DDTrace\Sampling\ConfigurableSampler;
-use DDTrace\Sampling\Sampler;
+use DDTrace\Encoders\Json;
 use DDTrace\Transport\Http;
-use DDTrace\Transport\Noop as NoopTransport;
+use DDTrace\Log\LoggingTrait;
+use DDTrace\Sampling\Sampler;
+use DDTrace\Propagators\TextMap;
+use DDTrace\Encoders\MessagePack;
+use DDTrace\Encoders\SpanEncoder;
+use DDTrace\Encoders\Jaeger as JaegerEncoder;
+use DDTrace\Transport\Jaeger\Jaeger;
+use DDTrace\Integrations\Integration;
+use DDTrace\Propagators\CurlHeadersMap;
 use DDTrace\Exceptions\UnsupportedFormat;
-use DDTrace\Contracts\Scope as ScopeInterface;
+use DDTrace\Sampling\ConfigurableSampler;
 use DDTrace\Contracts\Span as SpanInterface;
-use DDTrace\Contracts\SpanContext as SpanContextInterface;
+use DDTrace\Transport\Noop as NoopTransport;
+use DDTrace\Contracts\Scope as ScopeInterface;
+use DDTrace\Processing\TraceAnalyticsProcessor;
+use DDTrace\Propagators\Noop as NoopPropagator;
 use DDTrace\Contracts\Tracer as TracerInterface;
+use DDTrace\Contracts\SpanContext as SpanContextInterface;
 
 final class Tracer implements TracerInterface
 {
@@ -119,7 +121,17 @@ final class Tracer implements TracerInterface
      */
     public function __construct(Transport $transport = null, array $propagators = null, array $config = [])
     {
-        $encoder = getenv('DD_TRACE_ENCODER') === 'json' ? new Json() : new MessagePack();
+        switch (getenv('DD_TRACE_ENCODER')) {
+            case 'json':
+                $encoder = new Json();
+                break;
+            case 'jaeger':
+                $encoder = new JaegerEncoder();
+                $transport = new Jaeger($encoder);
+                break;
+            default:
+                $encoder = new MessagePack();
+        }
         $this->transport = $transport ?: new Http($encoder);
         $textMapPropagator = new TextMap($this);
         $this->propagators = $propagators ?: [
@@ -538,5 +550,10 @@ final class Tracer implements TracerInterface
     public function getTracesCount()
     {
         return count($this->traces);
+    }
+
+    public function getAppName()
+    {
+        return $this->globalConfig->appName();
     }
 }

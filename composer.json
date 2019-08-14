@@ -22,7 +22,8 @@
     "require": {
         "php": "~5.4.0 || ~5.6.0 || ^7.0",
         "ext-curl": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "apache/thrift": "^0.12.0"
     },
     "require-dev": {
         "g1a/composer-test-scenarios": "~3.0",

@@ -8,7 +8,7 @@ interface Encoder
 {
     /**
      * @param TracerInterface $tracer
-     * @return string
+     * @return object
      */
     public function encodeTraces(TracerInterface $tracer);
 
