@@ -14,6 +14,7 @@ use Thrift\Transport\THttpClient;
 use Thrift\Protocol\TCompactProtocol;
 use DDTrace\Sampling\PrioritySampling;
 use Thrift\Transport\TBufferedTransport;
+use DDTrace\Transport\Jaeger\TUDPTransport;
 use Thrift\Protocol\TBinaryProtocolAccelerated;
 use DDTrace\Transport\Jaeger\Thrift\Agent\AgentClient;
 

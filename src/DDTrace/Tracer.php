@@ -1,25 +1,38 @@
 <?php
 
-use DDTrace\Encoders\Json;
-use DDTrace\Encoders\SpanEncoder;
+namespace DDTrace;
+
+use DDTrace\Tag;
+use DDTrace\Span;
+use DDTrace\Time;
+use DDTrace\Format;
+use DDTrace\NoopSpan;
 use DDTrace\Http\Urls;
-use DDTrace\Encoders\MessagePack;
-use DDTrace\Encoders\Jaeger as JaegerEncoder;
-use DDTrace\Transport\Jaeger\Jaeger;
-use DDTrace\Log\LoggingTrait;
-use DDTrace\Processing\TraceAnalyticsProcessor;
-use DDTrace\Propagators\CurlHeadersMap;
-use DDTrace\Propagators\Noop as NoopPropagator;
-use DDTrace\Propagators\TextMap;
-use DDTrace\Sampling\ConfigurableSampler;
-use DDTrace\Sampling\Sampler;
+use DDTrace\Reference;
+use DDTrace\Transport;
+use DDTrace\SpanContext;
+use DDTrace\ScopeManager;
+use DDTrace\Encoders\Json;
 use DDTrace\Transport\Http;
-use DDTrace\Transport\Noop as NoopTransport;
+use DDTrace\Log\LoggingTrait;
+use DDTrace\Sampling\Sampler;
+use DDTrace\StartSpanOptions;
+use DDTrace\Propagators\TextMap;
+use DDTrace\Encoders\MessagePack;
+use DDTrace\Encoders\SpanEncoder;
+use DDTrace\Transport\Jaeger\Jaeger;
+use DDTrace\Sampling\PrioritySampling;
+use DDTrace\Propagators\CurlHeadersMap;
 use DDTrace\Exceptions\UnsupportedFormat;
-use DDTrace\Contracts\Scope as ScopeInterface;
+use DDTrace\Sampling\ConfigurableSampler;
 use DDTrace\Contracts\Span as SpanInterface;
-use DDTrace\Contracts\SpanContext as SpanContextInterface;
+use DDTrace\Transport\Noop as NoopTransport;
+use DDTrace\Encoders\Jaeger as JaegerEncoder;
+use DDTrace\Contracts\Scope as ScopeInterface;
+use DDTrace\Processing\TraceAnalyticsProcessor;
+use DDTrace\Propagators\Noop as NoopPropagator;
 use DDTrace\Contracts\Tracer as TracerInterface;
+use DDTrace\Contracts\SpanContext as SpanContextInterface;
 
 final class Tracer implements TracerInterface
 {
@@ -84,7 +97,7 @@ final class Tracer implements TracerInterface
     /**
      * @var string
      */
-    private $prioritySampling = Sampling\PrioritySampling::UNKNOWN;
+    private $prioritySampling = PrioritySampling::UNKNOWN;
 
     /**
      * @var string|null
@@ -531,7 +544,7 @@ final class Tracer implements TracerInterface
      */
     private function enforcePrioritySamplingOnRootSpan()
     {
-        if ($this->prioritySampling !== Sampling\PrioritySampling::UNKNOWN) {
+        if ($this->prioritySampling !== PrioritySampling::UNKNOWN) {
             return;
         }
 
@@ -545,10 +558,5 @@ final class Tracer implements TracerInterface
         }
 
         $this->setPrioritySamplingFromSpan($rootSpan);
-    }
-
-    public function getAppName()
-    {
-        return $this->globalConfig->appName();
     }
 }

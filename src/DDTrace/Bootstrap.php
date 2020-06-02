@@ -3,6 +3,7 @@
 namespace DDTrace;
 
 use DDTrace\Http\Request;
+use DDTrace\Tracer;
 use DDTrace\Integrations\IntegrationsLoader;
 use DDTrace\Integrations\Web\WebIntegration;
 

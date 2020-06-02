@@ -3,6 +3,7 @@
 namespace DDTrace\Encoders;
 
 use DDTrace\Encoder;
+use DDTrace\Configuration;
 use DDTrace\Contracts\Tracer;
 use DDTrace\Log\LoggingTrait;
 use DDTrace\Transport\Jaeger\Thrift\Tag;
@@ -56,7 +57,7 @@ final class Jaeger implements Encoder
         
         return new Batch([
             'process' => new Process([
-                'serviceName' => $tracer->getAppName(),
+                'serviceName' => Configuration::get()->appName(),
             ]),
             'spans' => $spans,
         ]);
