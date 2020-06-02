@@ -13,7 +13,7 @@ class Request
     public static function getHeaders(array $server = [])
     {
         $headers = [];
-        $server = $server ?: $_SERVER;
+        $server = $server ?: ($_SERVER ?? []);
         foreach ($server as $key => $value) {
             if (strpos($key, 'HTTP_') !== 0) {
                 continue;
